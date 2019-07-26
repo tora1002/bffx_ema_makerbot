@@ -24,7 +24,7 @@ from bitflyer_ccxt import bitflyer
 
 
 def get_tciker_info(bitflyer):
-    ticker = bitflyer.fetch_ticker("BTC/JPY")
+    ticker = bitflyer.fetch_ticker("FX_BTC_JPY")
     return ticker["info"]
 
 
