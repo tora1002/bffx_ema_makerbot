@@ -12,42 +12,28 @@
 
 
 # 構造
----bin
 
-    ∟make_index_and_trade_batch.py
+* bin/make_index_and_trade_batch.py
+    * ticker取得
+    * MACD作成
+    * トレード判定
+    * トレード
+* bin/aggregate_batch.py
+    * 取引IDを元に会計データを取得
 
-* ticker取得
-* MACD作成
-* トレード判定
-* トレード
+* models/bitflyer_ticker.py
+       * Ticker情報を格納するテーブル
+* models/bitflyer_macd.py
+    * Tickerから計算したMACD情報を格納するテーブル
+    * 結論、Ticker情報テーブルと分けた意味はあまりなかった...
+* models/bitflyer_ema_trade_history.py
+    * Trade履歴を格納するテーブル
 
-    ∟aggregate_batch.py
-    
-* 取引IDを元に会計データを取得
+* setting/bitflyer_ccxt.py
+* setting/db_setting.py
+* setting/logger.py
 
----models
-
-    ∟bitflyer_ticker.py
-       
-* Ticker情報を格納するテーブル
-
-    ∟bitflyer_macd.py
-    
-* Tickerから計算したMACD情報を格納するテーブル
-* 結論、Ticker情報テーブルと分けた意味はあまりなかった...
-       
-    ∟bitflyer_ema_trade_history.py
-
-* Trade履歴を格納するテーブル
-
----setting
-
-    ∟bitflyer_ccxt.py
-    
-    ∟db_setting.py
-    
-    ∟logger.py
-
+※ cloneしたら、logディレクトリを作らないと動かなくてエラーはきますw
 
 # 使っているテーブル
 
