@@ -33,10 +33,10 @@ class BitflyerMacd(Base):
 
     ##### insert
     def insert(session, ticker_timestamp, index_price, macd, macdsignal, macdhist, gcross, dcross):
-        sharping_time = ticker_timestamp.split(".")[0].replace("T", "")
+        sharping_time = ticker_timestamp.split(".")[0].replace("T", " ")
         session.add(
             BitflyerMacd(
-                server_nonce = int(sharping_time),
+                server_nonce = int(sharping_time.replace("-", "").replace(":", "").replace(" ", "")),
                 index_price = index_price,
                 macd = macd,
                 macdsignal = macdsignal,

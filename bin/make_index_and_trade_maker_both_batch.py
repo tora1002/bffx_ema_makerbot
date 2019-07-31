@@ -87,8 +87,8 @@ def insert_trade_history(session, request_nonce, amount, order_id):
     )
     session.commit()
 
-def update_status_close(session, trade_history, order_id, close_position):
-    trade_history.status = close_position
+def update_status_close(session, trade_history, order_id):
+    trade_history.status = "close"
     trade_history.close_order_id = order_id
     trade_history.updated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     session.commit()
@@ -178,14 +178,14 @@ if __name__ == "__main__" :
             # Gクロスの場合
             if gcross:
                 # bidの値を取得
-                price = ticker_info["best_bid"] + 1
+                price = ticker_info["best_bid"]
                 side = "buy"
                 type_string = "gcross_open"
 
             # Dクロスの場合
             if dcross:
                 # askの値を取得
-                price = ticker_info["best_ask"] - 1
+                price = ticker_info["best_ask"]
                 side = "sell"
                 type_string = "dcross_open"
 
@@ -225,9 +225,8 @@ if __name__ == "__main__" :
             # GクロスOpenのポジションを持っていて、なおかつ、Dクロスした場合
             if (len(gcross_open_position) == 1) & dcross:
                 # askの値を取得
-                price = ticker_info["best_ask"] - 1
+                price = ticker_info["best_ask"]
                 side = "sell"
-                close_position = "gcross_close"
             
                 # 変数をセット
                 for p in gcross_open_position:
@@ -236,9 +235,8 @@ if __name__ == "__main__" :
             # DクロスOpenのポジションを持っていて、なおかつ、Gクロスした場合
             if (len(dcross_open_position) == 1) & gcross:
                 # bidの値を取得
-                price = ticker_info["best_bid"] + 1
+                price = ticker_info["best_bid"]
                 side = "buy"
-                close_position = "dcross_close"
                 
                 # 変数をセット
                 for p in dcross_open_position:
@@ -263,7 +261,7 @@ if __name__ == "__main__" :
 
                 # takeされた場合
                 else:
-                    update_status_close(session, trade_history, order_id, close_position)
+                    update_status_close(session, trade_history, order_id)
                     order_flg = False
                     logger.info("Close position")
 

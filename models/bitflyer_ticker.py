@@ -31,7 +31,6 @@ class BitflyerTicker(Base):
     ##### insert
     def insert(session, request_nonce, ticker_info, index_price):
         sharping_time = ticker_info["timestamp"].split(".")[0].replace("T", " ")
-        print(sharping_time)
         session.add(
             BitflyerTicker(
                 request_nonce = request_nonce,

@@ -54,8 +54,16 @@ def get_tciker_info(bitflyer):
     ticker = bitflyer.fetch_ticker("FX_BTC_JPY")
     return ticker["info"]
 
-def create_order(bitflyer, side, amount, price):
-    res = bitflyer.create_order(symbol = "FX_BTC_JPY", type = "limit", side = side, amount = amount, price = price)
+def create_buy_order(bitflyer, amount, price):
+    res = bitflyer.create_order(symbol = "FX_BTC_JPY", type = "limit", side = "buy", amount = amount, price = price)
+    
+    if res["id"] is None:
+        raise Exception("Can not order")
+
+    return res
+
+def create_sell_order(bitflyer, amount):
+    res = bitflyer.create_order(symbol = "FX_BTC_JPY", type = "market", side = "sell", amount = amount)
     
     if res["id"] is None:
         raise Exception("Can not order")
@@ -87,8 +95,8 @@ def insert_trade_history(session, request_nonce, amount, order_id):
     )
     session.commit()
 
-def update_status_close(session, trade_history, order_id, close_position):
-    trade_history.status = close_position
+def update_status_close(session, trade_history, order_id):
+    trade_history.status = "close"
     trade_history.close_order_id = order_id
     trade_history.updated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     session.commit()
@@ -166,32 +174,20 @@ if __name__ == "__main__" :
 
     try:
         ### ポジションを持っているか？
-        gcross_open_position = get_position(session, "gcross_open")
-        dcross_open_position = get_position(session, "dcross_open")
+        position = get_position(session, "open")
 
-        ### ポジションを持っていない & クロスが起こった場合
-        if (len(gcross_open_position) == 0) & (len(dcross_open_position) == 0) & (gcross or dcross):
-            logger.info("Open Position order")
-            # ticker情報取得
+        ### ポジションを持っていない & Gクロスしていた場合
+        if (len(position) == 0) & gcross:
+
+            logger.info("Gcross & buy order")
+
+            # bidの値を取得
             ticker_info = get_tciker_info(bitflyer)
-            
-            # Gクロスの場合
-            if gcross:
-                # bidの値を取得
-                price = ticker_info["best_bid"] + 1
-                side = "buy"
-                type_string = "gcross_open"
-
-            # Dクロスの場合
-            if dcross:
-                # askの値を取得
-                price = ticker_info["best_ask"] - 1
-                side = "sell"
-                type_string = "dcross_open"
+            ticker_bid = ticker_info["best_bid"]
 
             # 注文
             request_nonce = datetime.now().strftime("%Y%m%d%H%M%S")
-            res = create_order(bitflyer, side = side, amount = trade_amount, price = price)
+            res = create_buy_order(bitflyer, amount = trade_amount, price = ticker_bid)
 
             order_id = res["id"]
             insert_trade_history(session, request_nonce, trade_amount, order_id)
@@ -213,59 +209,34 @@ if __name__ == "__main__" :
 
             # takeされた場合
             else:
-                update_status(session, trade_history, type_string)
-                logger.info("Open Position " + type_string)
+                update_status(session, trade_history, "open")
+                logger.info("Open Position")
 
-        ### ポジションを持っている & クロスが起こった場合
-        if ((len(gcross_open_position) == 1) & dcross) or ((len(dcross_open_position) == 1) & gcross):
-            logger.info("Close Position order")
-            # ticker情報取得
-            ticker_info = get_tciker_info(bitflyer)
 
-            # GクロスOpenのポジションを持っていて、なおかつ、Dクロスした場合
-            if (len(gcross_open_position) == 1) & dcross:
-                # askの値を取得
-                price = ticker_info["best_ask"] - 1
-                side = "sell"
-                close_position = "gcross_close"
-            
-                # 変数をセット
-                for p in gcross_open_position:
-                    trade_history = p
+        ### ポジションを持っている & Dクロスしていた場合
+        if (len(position) == 1) & dcross:
 
-            # DクロスOpenのポジションを持っていて、なおかつ、Gクロスした場合
-            if (len(dcross_open_position) == 1) & gcross:
-                # bidの値を取得
-                price = ticker_info["best_bid"] + 1
-                side = "buy"
-                close_position = "dcross_close"
-                
-                # 変数をセット
-                for p in dcross_open_position:
-                    trade_history = p
+            logger.info("Dcross & sell order")
 
-            # ポジションを解消したいので、orderを出し続けるためのflg
-            order_flg = True
+            # 変数をセット
+            for p in position:
+                trade_history = p
 
-            while(order_flg):
-                res = create_order(bitflyer, side = side, amount = trade_amount, price = price)
-                order_id = res["id"]
+            res = create_sell_order(bitflyer, amount = trade_amount)
+            order_id = res["id"]
 
-                sleep(1)
+            sleep(1)
 
-                # 未決済のポジションを全て取得
-                open_orders = get_open_orders(bitflyer)
+            # 未決済のポジションを全て取得
+            open_orders = get_open_orders(bitflyer)
 
-                # takeされなかったのでキャンセル
-                if len(open_orders) == 1:
-                    cancel_order(bitflyer, order_id)
-                    logger.info("Can not sell order")
+            # takeされなかったのでキャンセル
+            if len(open_orders) == 1:
+                logger.info("Can not sell order")
+                raise Exception
 
-                # takeされた場合
-                else:
-                    update_status_close(session, trade_history, order_id, close_position)
-                    order_flg = False
-                    logger.info("Close position")
+            update_status_close(session, trade_history, order_id)
+            logger.info("Close position")
 
     # キャッチして例外をログに記録
     except Exception as e:

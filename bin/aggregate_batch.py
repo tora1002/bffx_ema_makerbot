@@ -15,10 +15,10 @@ sys.path.append(os.path.join(app_home, "models"))
 sys.path.append(os.path.join(app_home, "setting"))
 
 # モジュール、設定系の読み込み
-from coincheck_ema_trade_history import CoincheckEmaTradeHistory
+from bitflyer_ema_trade_history import BitflyerEmaTradeHistory
 from db_setting import session
 from logger import logger
-from coincheck_ccxt import coincheck
+from bitflyer_ccxt import bitflyer
 
 if __name__ == "__main__" :
 
@@ -26,50 +26,79 @@ if __name__ == "__main__" :
     
     try:
         #statusがcloseのレコードを取得する
-        close_positions = CoincheckEmaTradeHistory.get_record_filter_status(session, "close")
+        gcross_close_positions = BitflyerEmaTradeHistory.get_record_filter_status(session, "gcross_close")
 
-        if close_positions is not None:
+        if gcross_close_positions is not None:
         
             # 直近の取引履歴25件をcoincheckから取得する
-            my_trades = coincheck.get_my_trades()
+            my_trades = bitflyer.fetch_my_trades(symbol = "FX_BTC_JPY")
             
             # 1件ずつ、order_idをキーに突合し、抜けているデータを保存する
-            for trade_history in close_positions:
+            for trade_history in gcross_close_positions:
                 # 変数初期化
                 open_time = None
                 open_rate = None
-                open_price = None
                 close_time = None
                 close_rate = None
-                close_price = None
- 
+
                 for my_trade in my_trades:
-                    if my_trade["info"]["order_id"] == trade_history.open_order_id:
-                        open_time = my_trade["info"]["created_at"]
-                        open_rate = my_trade["info"]["rate"]
-                        open_price = my_trade["info"]["funds"]["jpy"]
-                    if my_trade["info"]["order_id"] == trade_history.close_order_id:
-                        close_time = my_trade["info"]["created_at"]
-                        close_rate = my_trade["info"]["rate"]
-                        close_price = my_trade["info"]["funds"]["jpy"]
+                    if str(my_trade["order"]) == str(trade_history.open_order_id):
+                        open_time = my_trade["datetime"].split(".")[0].replace("T", " ")
+                        open_rate = my_trade["price"]
+                    if str(my_trade["order"]) == str(trade_history.close_order_id):
+                        close_time = my_trade["datetime"].split(".")[0].replace("T", " ")
+                        close_rate = my_trade["price"]
  
-                # データ整形
-                sharping_open_time = open_time.split(".")[0].replace("T", " ")
-                sharping_close_time = close_time.split(".")[0].replace("T", " ")
-                profit = float(close_price) + float(open_price)
-                print(close_price)
-                print(open_price)
+                if open_time is not None and close_time is not None: 
+                    # update
+                    trade_history.status = "gcross_agregated"
+                    trade_history.open_time = datetime.strptime(open_time, "%Y-%m-%d %H:%M:%S")
+                    trade_history.open_rate = open_rate
+                    trade_history.close_time =datetime.strptime(close_time, "%Y-%m-%d %H:%M:%S")
+                    trade_history.close_rate = close_rate
+                    trade_history.profit = (float(close_rate) - float(open_rate)) * 0.01
+                    trade_history.updated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    session.commit()
+
+        #statusがcloseのレコードを取得する
+        dcross_close_positions = BitflyerEmaTradeHistory.get_record_filter_status(session, "dcross_close")
+
+        if dcross_close_positions is not None:
+        
+            # 直近の取引履歴25件をcoincheckから取得する
+            my_trades = bitflyer.fetch_my_trades(symbol = "FX_BTC_JPY")
+            
+            # 1件ずつ、order_idをキーに突合し、抜けているデータを保存する
+            for trade_history in dcross_close_positions:
+                # 変数初期化
+                open_time = None
+                open_rate = None
+                close_time = None
+                close_rate = None
+
+                for my_trade in my_trades:
+                    if str(my_trade["order"]) == str(trade_history.open_order_id):
+                        open_time = my_trade["datetime"].split(".")[0].replace("T", " ")
+                        open_rate = my_trade["price"]
+                    if str(my_trade["order"]) == str(trade_history.close_order_id):
+                        close_time = my_trade["datetime"].split(".")[0].replace("T", " ")
+                        close_rate = my_trade["price"]
  
-                # update
-                trade_history.status = "agregated"
-                trade_history.open_time = datetime.strptime(sharping_open_time, "%Y-%m-%d %H:%M:%S")
-                trade_history.open_rate = open_rate
-                trade_history.close_time =datetime.strptime(sharping_close_time, "%Y-%m-%d %H:%M:%S")
-                trade_history.close_rate = close_rate
-                trade_history.profit = profit
-                trade_history.updated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                session.commit()
-    
+                if open_time is not None and close_time is not None: 
+                    # update
+                    trade_history.status = "dcross_agregated"
+                    trade_history.open_time = datetime.strptime(open_time, "%Y-%m-%d %H:%M:%S")
+                    trade_history.open_rate = open_rate
+                    trade_history.close_time =datetime.strptime(close_time, "%Y-%m-%d %H:%M:%S")
+                    trade_history.close_rate = close_rate
+                    trade_history.profit = (float(open_rate) - float(close_rate)) * 0.01
+                    trade_history.updated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    session.commit()
+
+
+
+
+
     # キャッチして例外をログに記録
     except Exception as e:
         logger.exception(e)
