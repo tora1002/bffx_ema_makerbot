@@ -10,6 +10,15 @@
 
 クローズする場合は、ひたすら刺し続ける。
 
+# 動かし方
+
+* cloneする
+* logディレクトリ作る
+* デーブル作る
+* DBアクセス情報を、setting/db_setting.py に書き込む
+* bin/make_index_and_trade_batch.py を10秒に1回動くようにcron設定する
+* bin/aggregate_batch.py を3分に1回くらい動くようにcron設定する
+
 
 # 構造
 
@@ -19,7 +28,7 @@
     * トレード判定
     * トレード
 * bin/aggregate_batch.py
-    * 取引IDを元に会計データを取得
+    * 取引IDを元に取引データを取得して、bitflyer_ema_trade_historyの必要カラムを埋める
 
 * models/bitflyer_ticker.py
        * Ticker情報を格納するテーブル
