@@ -13,24 +13,39 @@
 
 # 構造
 ---bin
+
     ∟make_index_and_trade_batch.py
-       ・ticker取得
-       ・MACD作成
-       ・トレード判定
-       ・トレード
+
+* ticker取得
+* MACD作成
+* トレード判定
+* トレード
+
     ∟aggregate_batch.py
-       ・取引IDを元に会計データを取得
+    
+* 取引IDを元に会計データを取得
+
 ---models
+
     ∟bitflyer_ticker.py
-       ・Ticker情報を格納するテーブル
+       
+* Ticker情報を格納するテーブル
+
     ∟bitflyer_macd.py
-       ・Tickerから計算したMACD情報を格納するテーブル
-       ・結論、Ticker情報テーブルと分けた意味はあまりなかった...
+    
+* Tickerから計算したMACD情報を格納するテーブル
+* 結論、Ticker情報テーブルと分けた意味はあまりなかった...
+       
     ∟bitflyer_ema_trade_history.py
-       ・Trade履歴を格納するテーブル
+
+* Trade履歴を格納するテーブル
+
 ---setting
+
     ∟bitflyer_ccxt.py
+    
     ∟db_setting.py
+    
     ∟logger.py
 
 
